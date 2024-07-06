@@ -1,0 +1,245 @@
+---
+title: "War in Ukraine"
+author: "Bohdan Somriakov"
+date: "2024-07-05"
+output: html_document
+---
+
+# Setup
+
+The code installs and loads several key R packages for data analysis.
+These packages collectively provide a robust toolkit for handling various aspects of data science workflows in R, from data import and manipulation to spatial data analysis and visualization.
+
+## Packages
+
+The code installs essential R packages (tidyverse, sf, mapview, ggplot2, readr, dplyr, raster) used for comprehensive data manipulation, spatial analysis, interactive mapping, visualization, file reading, and efficient data handling tasks within R.
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+chooseCRANmirror(ind=1)
+install.packages("tidyverse")
+install.packages("sf")
+install.packages("mapview")
+install.packages("ggplot2")
+install.packages("readr")
+install.packages("dplyr")
+install.packages("raster")
+```
+
+## Libraries
+
+These lines of code load essential R packages (tidyverse, sf, mapview, ggplot2, readr, dplyr, raster) necessary for comprehensive data manipulation, spatial analysis, interactive mapping, visualization, and efficient file handling tasks within R.
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+library(tidyverse)
+library(sf)
+library(mapview)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(raster)
+```
+
+## Locale
+
+The code sets the system locale to "English_United States.1252" for character encoding and formatting conventions, and then retrieves and displays the current system locale settings in R.
+
+```{r echo=TRUE, warning=FALSE}
+Sys.setlocale("LC_ALL", "English_United States.1252")
+Sys.getlocale()
+```
+
+## Load data
+
+The code reads a CSV file named "Ukraine.csv" into R, storing it in a data frame called data, and displays the first 10 rows (head(data, 10)). It then converts the event_date column to Date format, interpreting dates in the format "%d %B %Y" (e.g., "24 February 2022").
+
+```{r echo=TRUE}
+data <- read_csv("Ukraine.csv")
+head(data, 10)
+
+data$event_date <- as.Date(data$event_date, format = "%d %B %Y")
+```
+
+# Results
+
+Results of the analysis.
+
+## Fatalities by date from 2019-07-16 to 2022-07-15
+
+Extracting and summarizing fatalities data by date.
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+fatalities_data <- data %>%  
+  dplyr::select(event_date, fatalities)
+
+fatalities_by_date_data <- fatalities_data %>% 
+  dplyr::group_by(event_date) %>% 
+  dplyr::summarise(total_fatalities = sum(fatalities, na.rm = TRUE))
+```
+
+Plotting fatalities data from 2019-07-16 to 2022-07-15 with average, minimum, and maximum annotations.
+
+```{r}
+tf <- fatalities_by_date_data$total_fatalities
+ggplot(data=fatalities_by_date_data) +
+  geom_point(mapping=aes(x=event_date, y=total_fatalities)) +
+  labs(title = "Fatalities in Ukraine from 2019-07-16 to 2022-07-15 per day",
+       caption=paste('average:',round(mean(tf),digits=2),                                                                                          'min:',min(tf),'max:',max(tf)),
+       x = 'time', y = 'fatalities')
+```
+
+## Fatalities by date from 2022-02-24 to 2022-07-15
+
+Filtering fatalities data from 'fatalities_by_date_data' for dates on or after February 24, 2022.
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+fatalities_by_date_filtered_data <- fatalities_by_date_data %>% 
+  filter(event_date >= as.Date('2022-02-24'))
+```
+
+Plotting fatalities data from February 24, 2022, to July 15, 2022, with annotations.
+
+```{r}
+tf <- fatalities_by_date_filtered_data$total_fatalities
+ggplot(fatalities_by_date_filtered_data) +
+  geom_point(mapping=aes(x=event_date, y=total_fatalities)) +
+  labs(title = "Fatalities in Ukraine from 2022-02-24 to 2022-07-15 per day",
+       caption=paste('average:',round(mean(tf),digits=2),
+                      'min:',min(tf),'max:',max(tf)),
+       x = 'time', y = 'fatalities')
+```
+
+## Fatalities cause from 2019-07-16 to 2022-07-15
+
+Plotting fatalities data grouped by event type and sub-event type.
+
+```{r}
+ggplot(data) + 
+  geom_bar(mapping=aes(x=event_type, fill = sub_event_type)) +
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Fatalities in Ukraine from 2019-07-16 to 2022-07-15 by event")
+```
+
+## Fatalities cause from 2022-02-24 to 2022-07-15
+
+Filtering 'data' to include records from February 24, 2022, onwards.
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+filtered_data <- data %>% 
+  filter(event_date >= as.Date('2022-02-24'))
+```
+
+Creating a bar plot of fatalities in Ukraine from February 24, 2022.
+
+```{r}
+ggplot(filtered_data) + 
+  geom_bar(mapping=aes(x=event_type, fill = sub_event_type)) +
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Fatalities in Ukraine from 2022-02-24 to 2022-07-15")
+```
+
+## Fatalities histogram from 2019-07-16 to 2022-07-15
+
+Histogram showing distribution of fatalities in Ukraine from 2019-07-16 to 2022-07-1.
+
+```{r}
+ggplot(data) + 
+  geom_histogram(mapping=aes(x=fatalities)) +
+  labs(title = "Fatalities in Ukraine from 2019-07-16 to 2022-07-15 by event", x = 'fatalities',)
+```
+
+## Fatalities histogram from 2022-02-24 to 2022-07-15
+
+Histogram showing distribution of fatalities in Ukraine from 2022-02-24 to 2022-07-1.
+
+```{r}
+ggplot(fatalities_by_date_filtered_data) + 
+  geom_histogram(mapping=aes(x=total_fatalities)) +
+  labs(title = "Fatalities in Ukraine from 2022-02-24 to 2022-07-15 per day", x = 'fatalities')
+```
+
+## Fatalities map from 2019-07-16 to 2022-07-15
+
+Converting the 'data' dataframe to an sf object with specified coordinates and CRS.
+
+CRS stands for Coordinate Reference System. It is a system that uses coordinates to define locations on the earth. There are many different coordinate reference systems, each designed for specific purposes or regions. In this code, crs = 4326 specifies the use of the WGS 84 coordinate reference system, which is commonly used for global mapping and GPS.
+
+```{r}
+fatalities_map <- st_as_sf(data, coords = c("longitude", "latitude"), crs = 4326)
+```
+
+Creating an interactive map using mapview, displaying the points in red with a size of 3.
+
+```{r}
+mapview(fatalities_map , cex = 3, col.regions = "red")
+```
+
+## Event with the most fatalitites from 2019-07-16 to 2022-07-15
+
+Find the maximum number of fatalities in the dataset.
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+max_fatalities <- max(data$fatalities)
+```
+
+Identify and print the note corresponding to the event with the most fatalities
+
+```{r}
+print("The event with the most fatalitites:")
+print(note_max_fatalities <- data$notes[which.max(data$fatalities)])
+```
+
+# Database
+
+You can create a table named Events with specified columns and data types if you want to store the data from the dataset. 
+
+```{sql eval=FALSE}
+CREATE DATABASE UkraineEvents;
+USE UkraineEvents;
+CREATE TABLE Events (
+    data_id INT,
+    iso INT,
+    event_id_cnty VARCHAR(255),
+    event_id_no_cnty INT,
+    event_date DATE,
+    year INT,
+    time_precision INT,
+    event_type VARCHAR(255),
+    sub_event_type VARCHAR(255),
+    actor1 VARCHAR(255),
+    assoc_actor_1 VARCHAR(255),
+    inter1 INT,
+    actor2 VARCHAR(255),
+    assoc_actor_2 VARCHAR(255),
+    inter2 INT,
+    interaction INT,
+    region VARCHAR(255),
+    country VARCHAR(255),
+    admin1 VARCHAR(255),
+    admin2 VARCHAR(255),
+    admin3 VARCHAR(255),
+    location VARCHAR(255),
+    latitude FLOAT,
+    longitude FLOAT,
+    geo_precision INT,
+    source VARCHAR(255),
+    source_scale VARCHAR(255),
+    notes TEXT,
+    fatalities INT,
+    timestamp INT,
+    iso3 VARCHAR(3),
+    PRIMARY KEY (data_id)
+);
+```
+
+Make sure to use appropriate date format before importing the dataset. Here is a python code example to convert between different date formats:
+
+```{python eval=FALSE, python.reticulate = FALSE}
+import pandas as pd
+data = pd.read_csv('Ukraine.csv')
+data['event_date'] = pd.to_datetime(data['event_date'], format='%d %B %Y').dt.strftime('%Y-%m-%d')
+data.to_csv('Ukraine_updated.csv', index=False)
+```
+
+# Credit
+
+Data taken from https://www.kaggle.com/datasets/jpmiller/conflict-in-ukraine?resource=download
